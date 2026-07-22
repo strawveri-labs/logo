@@ -6,6 +6,7 @@ from PIL import Image
 
 R_SCALE = 1.12
 W, H = 290, 320
+MARGIN = 20
 OUT_SCALE = 10
 SUPERSAMPLE = 1.2
 
@@ -102,7 +103,13 @@ def render_png(path):
 
     buf.seek(0)
     im = Image.open(buf).convert("RGBA")
-    im.resize((W * OUT_SCALE, H * OUT_SCALE), Image.LANCZOS).save(path)
+    im = im.resize((W * OUT_SCALE, H * OUT_SCALE), Image.LANCZOS)
+    im = im.crop(im.getchannel("A").getbbox())
+    side = max(im.size) + 2 * MARGIN * OUT_SCALE
+    canvas = Image.new("RGBA", (side, side))
+    canvas.paste(im, ((side - im.width) // 2, (side - im.height) // 2), im)
+    canvas.save(path)
+    return side
 
 
 def write_svg(path):
@@ -122,14 +129,14 @@ def write_svg(path):
 
 
 def main():
-    render_png("strawveri_icon.png")
+    side = render_png("strawveri_icon.png")
     write_svg("strawveri_icon.svg")
     with open("strawveri_icon_dots.csv", "w") as f:
         f.write("parca,x,y,yaricap,renk_r,renk_g,renk_b\n")
         for d in DOTS:
             f.write(",".join(str(v) for v in d) + "\n")
     print(f"{len(DOTS)} nokta -> strawveri_icon.png "
-          f"({W * OUT_SCALE}x{H * OUT_SCALE}), .svg, _dots.csv")
+          f"({side}x{side}), .svg, _dots.csv")
 
 
 if __name__ == "__main__":
